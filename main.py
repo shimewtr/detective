@@ -6,6 +6,11 @@ GITHUB_ACCESS_TOKEN = os.environ['GITHUB_ACCESS_TOKEN']
 
 class Detective():
     def __init__(self):
+        owner_name = input("Please enter organization or repository owner name :")
+        user_name = input("Please enter user name :")
+        print(owner_name)
+        print(user_name)
+
         access_token = GITHUB_ACCESS_TOKEN
         client = Client(
             transport=RequestsHTTPTransport(
