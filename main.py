@@ -6,19 +6,17 @@ GITHUB_ACCESS_TOKEN = os.environ['GITHUB_ACCESS_TOKEN']
 
 class Detective():
     def __init__(self):
-        owner_name = input("Please enter organization or repository owner name :")
+        organization_name = input("Please enter organization name :")
+        team_name = input("Please enter team name :")
         user_name = input("Please enter user name :")
-        print(owner_name)
-        print(user_name)
 
-        access_token = GITHUB_ACCESS_TOKEN
         client = Client(
             transport=RequestsHTTPTransport(
                 url = "https://api.github.com/graphql",
                 use_json = True,
                 headers = {
                     "Content-type": "application/json",
-                    "Authorization": "Bearer {}".format(access_token)
+                    "Authorization": "Bearer {}".format(GITHUB_ACCESS_TOKEN)
                 },
                 retries = 3,
             ),
@@ -26,20 +24,51 @@ class Detective():
         )
         resp = client.execute(
             gql("""
-                query($owner:String!, $name:String!) {
-                    repository(owner:$owner, name:$name){
-                        pullRequests(first:100, states:OPEN) {
-                    nodes { number }
+                query($organization_name:String!, $team_name:String!, $user_name:String!){
+                    organization(login:$organization_name) {
+                        teams(first: 1, query:$team_name) {
+                            nodes {
+                                name
+                                members(first: 1, query:$user_name) {
+                                    nodes {
+                                        name
+                                        contributionsCollection(
+                                            from: "2022-05-01T00:00:00+09:00"
+                                            to: "2022-05-20T23:59:59+09:00"
+                                        ) {
+                                            pullRequestContributions(last: 100, orderBy: {direction: ASC}) {
+                                                nodes {
+                                                    pullRequest {
+                                                        title
+                                                        url
+                                                        additions
+                                                        deletions
+                                                        commits {
+                                                            totalCount
+                                                        }
+                                                        repository {
+                                                            name
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            totalPullRequestContributions
+                                            totalCommitContributions
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            }"""),
+            """),
             variable_values={
-                "owner": "shimewtr",
-                "name": "anopost"
+                "organization_name": organization_name,
+                "team_name": team_name,
+                "user_name": user_name
             })
 
-        for pr in resp['repository']['pullRequests']['nodes']:
-            print(pr['number'])
+        print(resp)
 
 if __name__ == '__main__':
     Detective()
