@@ -75,8 +75,7 @@ class Detective():
             commits = 0
             for pull_request_contributeion in member["contributionsCollection"]["pullRequestContributions"]["nodes"]:
                 pull_request = pull_request_contributeion["pullRequest"]
-                if True:
-                # if pull_request["state"] == "MERGED":
+                if pull_request["state"] == "MERGED" or pull_request["state"] == "OPEN":
                     additions += pull_request["additions"]
                     deletions += pull_request["deletions"]
                     merged_pull_requests += 1
