@@ -24,16 +24,16 @@ class Detective():
         )
         resp = client.execute(
             gql("""
-                query($organization_name:String!, $team_name:String!, $user_name:String!){
+                query($organization_name:String!, $team_name:String!){
                     organization(login:$organization_name) {
                         teams(first: 1, query:$team_name) {
                             nodes {
                                 name
-                                members(first: 1, query:$user_name) {
+                                members(first: 30) {
                                     nodes {
-                                        name
+                                        login
                                         contributionsCollection(
-                                            from: "2022-05-01T00:00:00+09:00"
+                                            from: "2022-04-01T00:00:00+09:00"
                                             to: "2022-05-20T23:59:59+09:00"
                                         ) {
                                             pullRequestContributions(last: 100, orderBy: {direction: ASC}) {
@@ -43,11 +43,9 @@ class Detective():
                                                         url
                                                         additions
                                                         deletions
+                                                        state
                                                         commits {
                                                             totalCount
-                                                        }
-                                                        repository {
-                                                            name
                                                         }
                                                     }
                                                 }
@@ -68,7 +66,22 @@ class Detective():
                 "user_name": user_name
             })
 
-        print(resp)
+        print(",".join(["name", "additions", "deletions", "merged_pull_requests", "commits"]))
+        for member in resp["organization"]["teams"]["nodes"][0]["members"]["nodes"]:
+            login = member["login"]
+            additions = 0
+            deletions = 0
+            merged_pull_requests = 0
+            commits = 0
+            for pull_request_contributeion in member["contributionsCollection"]["pullRequestContributions"]["nodes"]:
+                pull_request = pull_request_contributeion["pullRequest"]
+                if True:
+                # if pull_request["state"] == "MERGED":
+                    additions += pull_request["additions"]
+                    deletions += pull_request["deletions"]
+                    merged_pull_requests += 1
+                    commits += pull_request["commits"]["totalCount"]
+            print(",".join([str(n) for n in [login, additions, deletions, merged_pull_requests, commits]]))
 
 if __name__ == '__main__':
     Detective()
