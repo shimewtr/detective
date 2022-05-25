@@ -34,7 +34,7 @@ class Detective():
                                         login
                                         contributionsCollection(
                                             from: "2022-04-01T00:00:00+09:00"
-                                            to: "2022-05-20T23:59:59+09:00"
+                                            to: "2022-05-25T23:59:59+09:00"
                                         ) {
                                             pullRequestContributions(last: 100, orderBy: {direction: ASC}) {
                                                 nodes {
