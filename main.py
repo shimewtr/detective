@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta, timezone
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
 from tqdm import tqdm
@@ -7,13 +8,20 @@ GITHUB_ACCESS_TOKEN = os.environ['GITHUB_ACCESS_TOKEN']
 
 class Detective():
     def __init__(self):
-        organization_name = input("Please enter organization name :")
-        team_name = input("Please enter team name :")
-        user_name = input("Please enter user name :")
-
-        self.client = Client(
+        self.organization_name = input("Organization name        :")
+        self.team_name = input("Team name                :")
+        start_date = input("Start date like 20201231 :")
+        end_date = input("End date like 20201231   :")
+        start_datetime = datetime.strptime(start_date, '%Y%m%d')
+        end_datetime = datetime.strptime(end_date, '%Y%m%d') + timedelta(days=1) - timedelta(seconds=1)
+        self.start_datetime_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+        self.end_datetime_str = end_datetime.strftime("%Y-%m-%dT%H:%M:%S+09:00")
         self.client = self.build_client()
-        contributions = self.fetch_contributions()
+        self.members = sorted(self.fetch_members())
+        self.contributions = self.fetch_contributions()
+        for contribution in self.contributions:
+            print(",".join([str(i) for i in contribution]))
+
     def build_client(self):
         return Client(
             transport=RequestsHTTPTransport(
@@ -27,11 +35,9 @@ class Detective():
             ),
             fetch_schema_from_transport=True,
         )
-        self.members = self.fetch_members()
-        print(self.members)
 
     def fetch_contributions(self):
-        contributions = ["name", "additions", "deletions", "merged_pull_requests", "commits"]
+        contributions = [["name", "additions", "deletions", "merged_pull_requests", "commits"]]
         for member in tqdm(self.members):
             name = member
             additions = 0
@@ -43,7 +49,7 @@ class Detective():
             while True:
                 resp = self.client.execute(
                     gql("""
-                        query($organization_name:String!, $team_name:String!, $member:String!, $after:String){
+                        query($organization_name:String!, $team_name:String!, $member:String!, $after:String, $start_datetime:DateTime!, $end_datetime:DateTime!){
                             organization(login:$organization_name) {
                                 teams(first: 1, query:$team_name) {
                                     nodes {
@@ -52,8 +58,8 @@ class Detective():
                                             nodes {
                                                 login
                                                 contributionsCollection(
-                                                    from: "2022-04-01T00:00:00+09:00"
-                                                    to: "2022-05-25T23:59:59+09:00"
+                                                    from: $start_datetime
+                                                    to: $end_datetime
                                                 ) {
                                                     pullRequestContributions(first: 100 after:$after) {
                                                         pageInfo {
@@ -85,7 +91,9 @@ class Detective():
                         "organization_name": self.organization_name,
                         "team_name": self.team_name,
                         "member": member,
-                        "after": after
+                        "after": after,
+                        "start_datetime": self.start_datetime_str,
+                        "end_datetime": self.end_datetime_str,
                     })
                 pull_request_contributions = resp["organization"]["teams"]["nodes"][0]["members"]["nodes"][0]["contributionsCollection"]["pullRequestContributions"]
                 page_info = pull_request_contributions["pageInfo"]
