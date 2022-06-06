@@ -11,6 +11,9 @@ class Detective():
         user_name = input("Please enter user name :")
 
         self.client = Client(
+        self.client = self.build_client()
+    def build_client(self):
+        return Client(
             transport=RequestsHTTPTransport(
                 url = "https://api.github.com/graphql",
                 use_json = True,
